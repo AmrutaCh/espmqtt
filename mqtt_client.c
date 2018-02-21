@@ -190,29 +190,29 @@ static esp_err_t esp_mqtt_connect(esp_mqtt_client_handle_t client, int timeout_m
 {
     int write_len, read_len, connect_rsp_code;
     mqtt_msg_init(&client->mqtt_state.mqtt_connection,
-                  client->mqtt_state.out_buffer,
-                  client->mqtt_state.out_buffer_length);
+    client->mqtt_state.out_buffer,
+    client->mqtt_state.out_buffer_length);
     client->mqtt_state.outbound_message = mqtt_msg_connect(&client->mqtt_state.mqtt_connection,
-                                          client->mqtt_state.connect_info);
+    client->mqtt_state.connect_info);
     client->mqtt_state.pending_msg_type = mqtt_get_type(client->mqtt_state.outbound_message->data);
     client->mqtt_state.pending_msg_id = mqtt_get_id(client->mqtt_state.outbound_message->data,
-                                        client->mqtt_state.outbound_message->length);
+    client->mqtt_state.outbound_message->length);
     ESP_LOGI(TAG, "Sending MQTT CONNECT message, type: %d, id: %04X",
-             client->mqtt_state.pending_msg_type,
-             client->mqtt_state.pending_msg_id);
+    client->mqtt_state.pending_msg_type,
+    client->mqtt_state.pending_msg_id);
 
     write_len = transport_write(client->transport,
-                                (char *)client->mqtt_state.outbound_message->data,
-                                client->mqtt_state.outbound_message->length,
-                                client->config->network_timeout_ms);
+    (char *)client->mqtt_state.outbound_message->data,
+    client->mqtt_state.outbound_message->length,
+    client->config->network_timeout_ms);
     if (write_len < 0) {
         ESP_LOGE(TAG, "Writing failed, errno= %d", errno);
         return ESP_FAIL;
     }
     read_len = transport_read(client->transport,
-                              (char *)client->mqtt_state.in_buffer,
-                              client->mqtt_state.outbound_message->length,
-                              client->config->network_timeout_ms);
+    (char *)client->mqtt_state.in_buffer,
+    client->mqtt_state.outbound_message->length,
+    client->config->network_timeout_ms);
     if (read_len < 0) {
         ESP_LOGE(TAG, "Error network response");
         return ESP_FAIL;
@@ -224,24 +224,24 @@ static esp_err_t esp_mqtt_connect(esp_mqtt_client_handle_t client, int timeout_m
     }
     connect_rsp_code = mqtt_get_connect_return_code(client->mqtt_state.in_buffer);
     switch (connect_rsp_code) {
-        case CONNECTION_ACCEPTED:
-            ESP_LOGD(TAG, "Connected");
-            return ESP_OK;
-        case CONNECTION_REFUSE_PROTOCOL:
-            ESP_LOGW(TAG, "Connection refused, bad protocol");
-            return ESP_FAIL;
-        case CONNECTION_REFUSE_SERVER_UNAVAILABLE:
-            ESP_LOGW(TAG, "Connection refused, server unavailable");
-            return ESP_FAIL;
-        case CONNECTION_REFUSE_BAD_USERNAME:
-            ESP_LOGW(TAG, "Connection refused, bad username or password");
-            return ESP_FAIL;
-        case CONNECTION_REFUSE_NOT_AUTHORIZED:
-            ESP_LOGW(TAG, "Connection refused, not authorized");
-            return ESP_FAIL;
-        default:
-            ESP_LOGW(TAG, "Connection refused, Unknow reason");
-            return ESP_FAIL;
+    case CONNECTION_ACCEPTED:
+        ESP_LOGD(TAG, "Connected");
+        return ESP_OK;
+    case CONNECTION_REFUSE_PROTOCOL:
+        ESP_LOGW(TAG, "Connection refused, bad protocol");
+        return ESP_FAIL;
+    case CONNECTION_REFUSE_SERVER_UNAVAILABLE:
+        ESP_LOGW(TAG, "Connection refused, server unavailable");
+        return ESP_FAIL;
+    case CONNECTION_REFUSE_BAD_USERNAME:
+        ESP_LOGW(TAG, "Connection refused, bad username or password");
+        return ESP_FAIL;
+    case CONNECTION_REFUSE_NOT_AUTHORIZED:
+        ESP_LOGW(TAG, "Connection refused, not authorized");
+        return ESP_FAIL;
+    default:
+        ESP_LOGW(TAG, "Connection refused, Unknow reason");
+        return ESP_FAIL;
     }
     return ESP_OK;
 }
@@ -289,8 +289,14 @@ esp_mqtt_client_handle_t esp_mqtt_client_init(const esp_mqtt_client_config_t *co
 
     if (client->config->uri) {
         if (esp_mqtt_client_set_uri(client, client->config->uri) != ESP_OK) {
+            ESP_LOGD(TAG, "esp_mqtt_client_set_uri failed");
             return NULL;
         }
+    }
+    else{
+        //ToDo: set appropriate value to client->config->scheme
+        client->config->scheme = NULL;
+        ESP_LOGD(TAG, "uri is null");
     }
 
 
@@ -398,9 +404,9 @@ esp_err_t esp_mqtt_client_set_uri(esp_mqtt_client_handle_t client, const char *u
 static esp_err_t mqtt_write_data(esp_mqtt_client_handle_t client)
 {
     int write_len = transport_write(client->transport,
-                                    (char *)client->mqtt_state.outbound_message->data,
-                                    client->mqtt_state.outbound_message->length,
-                                    client->config->network_timeout_ms);
+    (char *)client->mqtt_state.outbound_message->data,
+    client->mqtt_state.outbound_message->length,
+    client->config->network_timeout_ms);
     // client->mqtt_state.pending_msg_type = mqtt_get_type(client->mqtt_state.outbound_message->data);
     if (write_len <= 0) {
         ESP_LOGE(TAG, "Error write data or timeout, written len = %d", write_len);
@@ -461,12 +467,12 @@ static void deliver_publish(esp_mqtt_client_handle_t client, uint8_t *message, i
 
         mqtt_offset += mqtt_len;
         if (client->mqtt_state.message_length_read >= client->mqtt_state.message_length)
-            break;
+        break;
 
         len_read = transport_read(client->transport,
-                                      (char *)client->mqtt_state.in_buffer,
-                                      client->mqtt_state.in_buffer_length,
-                                      client->config->network_timeout_ms);
+        (char *)client->mqtt_state.in_buffer,
+        client->mqtt_state.in_buffer_length,
+        client->config->network_timeout_ms);
         if (len_read <= 0) {
             ESP_LOGE(TAG, "Read error or timeout: %d", errno);
             break;
@@ -498,16 +504,16 @@ static bool is_valid_mqtt_msg(esp_mqtt_client_handle_t client, int msg_type, int
 static void mqtt_enqueue(esp_mqtt_client_handle_t client)
 {
     ESP_LOGD(TAG, "mqtt_enqueue id: %d, type=%d successful",
-        client->mqtt_state.pending_msg_id, client->mqtt_state.pending_msg_type);
+    client->mqtt_state.pending_msg_id, client->mqtt_state.pending_msg_type);
     //lock mutex
     if (client->mqtt_state.pending_msg_count > 0) {
         //Copy to queue buffer
         outbox_enqueue(client->outbox,
-                       client->mqtt_state.outbound_message->data,
-                       client->mqtt_state.outbound_message->length,
-                       client->mqtt_state.pending_msg_id,
-                       client->mqtt_state.pending_msg_type,
-                       platform_tick_get_ms());
+        client->mqtt_state.outbound_message->data,
+        client->mqtt_state.outbound_message->length,
+        client->mqtt_state.pending_msg_id,
+        client->mqtt_state.pending_msg_type,
+        platform_tick_get_ms());
     }
     //unlock
 }
@@ -537,74 +543,74 @@ static esp_err_t mqtt_process_receive(esp_mqtt_client_handle_t client)
     ESP_LOGD(TAG, "msg_type=%d, msg_id=%d", msg_type, msg_id);
     switch (msg_type)
     {
-        case MQTT_MSG_TYPE_SUBACK:
-            if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_SUBSCRIBE, msg_id)) {
-                ESP_LOGD(TAG, "Subscribe successful");
-                client->event.event_id = MQTT_EVENT_SUBSCRIBED;
-                esp_mqtt_dispatch_event(client);
-            }
-            break;
-        case MQTT_MSG_TYPE_UNSUBACK:
-            if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_UNSUBSCRIBE, msg_id)) {
-                ESP_LOGD(TAG, "UnSubscribe successful");
-                client->event.event_id = MQTT_EVENT_UNSUBSCRIBED;
-                esp_mqtt_dispatch_event(client);
-            }
-            break;
-        case MQTT_MSG_TYPE_PUBLISH:
-            if (msg_qos == 1) {
-                client->mqtt_state.outbound_message = mqtt_msg_puback(&client->mqtt_state.mqtt_connection, msg_id);
-            }
-            else if (msg_qos == 2) {
-                client->mqtt_state.outbound_message = mqtt_msg_pubrec(&client->mqtt_state.mqtt_connection, msg_id);
-            }
+    case MQTT_MSG_TYPE_SUBACK:
+        if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_SUBSCRIBE, msg_id)) {
+            ESP_LOGD(TAG, "Subscribe successful");
+            client->event.event_id = MQTT_EVENT_SUBSCRIBED;
+            esp_mqtt_dispatch_event(client);
+        }
+        break;
+    case MQTT_MSG_TYPE_UNSUBACK:
+        if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_UNSUBSCRIBE, msg_id)) {
+            ESP_LOGD(TAG, "UnSubscribe successful");
+            client->event.event_id = MQTT_EVENT_UNSUBSCRIBED;
+            esp_mqtt_dispatch_event(client);
+        }
+        break;
+    case MQTT_MSG_TYPE_PUBLISH:
+        if (msg_qos == 1) {
+            client->mqtt_state.outbound_message = mqtt_msg_puback(&client->mqtt_state.mqtt_connection, msg_id);
+        }
+        else if (msg_qos == 2) {
+            client->mqtt_state.outbound_message = mqtt_msg_pubrec(&client->mqtt_state.mqtt_connection, msg_id);
+        }
 
-            if (msg_qos == 1 || msg_qos == 2) {
-                ESP_LOGD(TAG, "Queue response QoS: %d", msg_qos);
+        if (msg_qos == 1 || msg_qos == 2) {
+            ESP_LOGD(TAG, "Queue response QoS: %d", msg_qos);
 
-                if (mqtt_write_data(client) != ESP_OK) {
-                    ESP_LOGE(TAG, "Error write qos msg repsonse, qos = %d", msg_qos);
-                    // TODO: Shoule reconnect?
-                    // return ESP_FAIL;
-                }
+            if (mqtt_write_data(client) != ESP_OK) {
+                ESP_LOGE(TAG, "Error write qos msg repsonse, qos = %d", msg_qos);
+                // TODO: Shoule reconnect?
+                // return ESP_FAIL;
             }
-            client->mqtt_state.message_length_read = read_len;
-            client->mqtt_state.message_length = mqtt_get_total_length(client->mqtt_state.in_buffer, client->mqtt_state.message_length_read);
-            ESP_LOGI(TAG, "deliver_publish, message_length_read=%d, message_length=%d", read_len, client->mqtt_state.message_length);
+        }
+        client->mqtt_state.message_length_read = read_len;
+        client->mqtt_state.message_length = mqtt_get_total_length(client->mqtt_state.in_buffer, client->mqtt_state.message_length_read);
+        ESP_LOGI(TAG, "deliver_publish, message_length_read=%d, message_length=%d", read_len, client->mqtt_state.message_length);
 
-            deliver_publish(client, client->mqtt_state.in_buffer, client->mqtt_state.message_length_read);
-            break;
-        case MQTT_MSG_TYPE_PUBACK:
-            if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_PUBLISH, msg_id)) {
-                ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBACK, finish QoS1 publish");
-            }
+        deliver_publish(client, client->mqtt_state.in_buffer, client->mqtt_state.message_length_read);
+        break;
+    case MQTT_MSG_TYPE_PUBACK:
+        if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_PUBLISH, msg_id)) {
+            ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBACK, finish QoS1 publish");
+        }
 
-            break;
-        case MQTT_MSG_TYPE_PUBREC:
-            ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBREC");
-            client->mqtt_state.outbound_message = mqtt_msg_pubrel(&client->mqtt_state.mqtt_connection, msg_id);
-            mqtt_write_data(client);
-            break;
-        case MQTT_MSG_TYPE_PUBREL:
-            ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBREL");
-            client->mqtt_state.outbound_message = mqtt_msg_pubcomp(&client->mqtt_state.mqtt_connection, msg_id);
-            mqtt_write_data(client);
+        break;
+    case MQTT_MSG_TYPE_PUBREC:
+        ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBREC");
+        client->mqtt_state.outbound_message = mqtt_msg_pubrel(&client->mqtt_state.mqtt_connection, msg_id);
+        mqtt_write_data(client);
+        break;
+    case MQTT_MSG_TYPE_PUBREL:
+        ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBREL");
+        client->mqtt_state.outbound_message = mqtt_msg_pubcomp(&client->mqtt_state.mqtt_connection, msg_id);
+        mqtt_write_data(client);
 
-            break;
-        case MQTT_MSG_TYPE_PUBCOMP:
-            ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBCOMP");
-            if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_PUBREL, msg_id)) {
-                ESP_LOGD(TAG, "Receive MQTT_MSG_TYPE_PUBCOMP, finish QoS2 publish");
-            }
-            break;
-        case MQTT_MSG_TYPE_PINGREQ:
-            client->mqtt_state.outbound_message = mqtt_msg_pingresp(&client->mqtt_state.mqtt_connection);
-            mqtt_write_data(client);
-            break;
-        case MQTT_MSG_TYPE_PINGRESP:
-            ESP_LOGD(TAG, "MQTT_MSG_TYPE_PINGRESP");
-            // Ignore
-            break;
+        break;
+    case MQTT_MSG_TYPE_PUBCOMP:
+        ESP_LOGD(TAG, "received MQTT_MSG_TYPE_PUBCOMP");
+        if (is_valid_mqtt_msg(client, MQTT_MSG_TYPE_PUBREL, msg_id)) {
+            ESP_LOGD(TAG, "Receive MQTT_MSG_TYPE_PUBCOMP, finish QoS2 publish");
+        }
+        break;
+    case MQTT_MSG_TYPE_PINGREQ:
+        client->mqtt_state.outbound_message = mqtt_msg_pingresp(&client->mqtt_state.mqtt_connection);
+        mqtt_write_data(client);
+        break;
+    case MQTT_MSG_TYPE_PINGRESP:
+        ESP_LOGD(TAG, "MQTT_MSG_TYPE_PINGRESP");
+        // Ignore
+        break;
     }
 
     return ESP_OK;
@@ -632,61 +638,63 @@ static void esp_mqtt_task(void *pv)
     while (client->run) {
 
         switch ((int)client->state) {
-            case MQTT_STATE_INIT:
-                if (client->transport == NULL) {
-                    ESP_LOGE(TAG, "There are no transport");
-                    client->run = false;
-                }
+        case MQTT_STATE_INIT:
+            if (client->transport == NULL) {
+                ESP_LOGE(TAG, "There are no transport");
+                client->run = false;
+            }
 
-                if (transport_connect(client->transport,
-                                      client->config->host,
-                                      client->config->port,
-                                      client->config->network_timeout_ms) < 0) {
-                    ESP_LOGE(TAG, "Error transport connect");
-                    esp_mqtt_abort_connection(client);
-                    break;
-                }
-                ESP_LOGD(TAG, "Transport connected to %s://%s:%d", client->config->scheme, client->config->host, client->config->port);
-                if (esp_mqtt_connect(client, client->config->network_timeout_ms) != ESP_OK) {
-                    ESP_LOGI(TAG, "Error MQTT Connected");
-                    esp_mqtt_abort_connection(client);
-                    break;
-                }
-                client->event.event_id = MQTT_EVENT_CONNECTED;
-                client->state = MQTT_STATE_CONNECTED;
-                esp_mqtt_dispatch_event(client);
-
+            if (transport_connect(client->transport,
+                        client->config->host,
+                        client->config->port,
+                        client->config->network_timeout_ms) < 0) {
+                ESP_LOGE(TAG, "Error transport connect");
+                esp_mqtt_abort_connection(client);
                 break;
-            case MQTT_STATE_CONNECTED:
-                // receive and process data
-                if (mqtt_process_receive(client) == ESP_FAIL) {
-                    esp_mqtt_abort_connection(client);
-                    break;
-                }
-
-                if (platform_tick_get_ms() - client->keepalive_tick > client->connect_info.keepalive * 1000 / 2) {
-                    esp_mqtt_client_ping(client);
-                    client->keepalive_tick = platform_tick_get_ms();
-                }
-
-                //Delete mesaage after 30 senconds
-                outbox_delete_expired(client->outbox, platform_tick_get_ms(), OUTBOX_EXPIRED_TIMEOUT_MS);
-                //
-                outbox_cleanup(client->outbox, OUTBOX_MAX_SIZE);
+            }
+            //ToDo: when uri is not used, application crashes here even if client->config->scheme is set to null
+            //  ESP_LOGD(TAG, "Transport connected to %s://%s:%d", client->config->scheme, client->config->host, client->config->port);
+            ESP_LOGD(TAG, "Transport connected to %s:%d", client->config->host, client->config->port);
+            if (esp_mqtt_connect(client, client->config->network_timeout_ms) != ESP_OK) {
+                ESP_LOGI(TAG, "Error MQTT Connected");
+                esp_mqtt_abort_connection(client);
                 break;
-            case MQTT_STATE_WAIT_TIMEOUT:
+            }
+            client->event.event_id = MQTT_EVENT_CONNECTED;
+            client->state = MQTT_STATE_CONNECTED;
+            esp_mqtt_dispatch_event(client);
 
-                if (!client->config->auto_reconnect) {
-                    client->run = false;
-                    break;
-                }
-                if (platform_tick_get_ms() - client->reconnect_tick > client->wait_timeout_ms) {
-                    client->state = MQTT_STATE_INIT;
-                    client->reconnect_tick = platform_tick_get_ms();
-                    ESP_LOGD(TAG, "Reconnecting...");
-                }
-                // wait for timeout then change state to INIT
+            break;
+        case MQTT_STATE_CONNECTED:
+            // receive and process data
+            if (mqtt_process_receive(client) == ESP_FAIL) {
+                esp_mqtt_abort_connection(client);
                 break;
+            }
+
+            if (platform_tick_get_ms() - client->keepalive_tick > client->connect_info.keepalive * 1000 / 2) {
+                esp_mqtt_client_ping(client);
+                client->keepalive_tick = platform_tick_get_ms();
+            }
+
+            //Delete mesaage after 30 senconds
+            outbox_delete_expired(client->outbox, platform_tick_get_ms(), OUTBOX_EXPIRED_TIMEOUT_MS);
+            //
+            outbox_cleanup(client->outbox, OUTBOX_MAX_SIZE);
+            break;
+        case MQTT_STATE_WAIT_TIMEOUT:
+
+            if (!client->config->auto_reconnect) {
+                client->run = false;
+                break;
+            }
+            if (platform_tick_get_ms() - client->reconnect_tick > client->wait_timeout_ms) {
+                client->state = MQTT_STATE_INIT;
+                client->reconnect_tick = platform_tick_get_ms();
+                ESP_LOGD(TAG, "Reconnecting...");
+            }
+            // wait for timeout then change state to INIT
+            break;
         }
     }
     transport_close(client->transport);
@@ -742,8 +750,8 @@ int esp_mqtt_client_subscribe(esp_mqtt_client_handle_t client, const char *topic
     }
     mqtt_enqueue(client); //move pending msg to outbox (if have)
     client->mqtt_state.outbound_message = mqtt_msg_subscribe(&client->mqtt_state.mqtt_connection,
-                                          topic, qos,
-                                          &client->mqtt_state.pending_msg_id);
+    topic, qos,
+    &client->mqtt_state.pending_msg_id);
 
     client->mqtt_state.pending_msg_type = mqtt_get_type(client->mqtt_state.outbound_message->data);
     client->mqtt_state.pending_msg_count ++;
@@ -765,8 +773,8 @@ int esp_mqtt_client_unsubscribe(esp_mqtt_client_handle_t client, const char *top
     }
     mqtt_enqueue(client);
     client->mqtt_state.outbound_message = mqtt_msg_unsubscribe(&client->mqtt_state.mqtt_connection,
-                                          topic,
-                                          &client->mqtt_state.pending_msg_id);
+    topic,
+    &client->mqtt_state.pending_msg_id);
     ESP_LOGD(TAG, "unsubscribe, topic\"%s\", id: %d", topic, client->mqtt_state.pending_msg_id);
 
     client->mqtt_state.pending_msg_type = mqtt_get_type(client->mqtt_state.outbound_message->data);
@@ -796,9 +804,9 @@ int esp_mqtt_client_publish(esp_mqtt_client_handle_t client, const char *topic, 
     }
 
     client->mqtt_state.outbound_message = mqtt_msg_publish(&client->mqtt_state.mqtt_connection,
-                                          topic, data, len,
-                                          qos, retain,
-                                          &pending_msg_id);
+    topic, data, len,
+    qos, retain,
+    &pending_msg_id);
     if (qos > 0) {
         client->mqtt_state.pending_msg_type = mqtt_get_type(client->mqtt_state.outbound_message->data);
         client->mqtt_state.pending_msg_id = pending_msg_id;
