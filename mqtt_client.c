@@ -61,8 +61,8 @@ struct esp_mqtt_client {
     mqtt_state_t  mqtt_state;
     mqtt_connect_info_t connect_info;
     mqtt_client_state_t state;
-    int keepalive_tick;
-    int reconnect_tick;
+    long long keepalive_tick;
+    long long reconnect_tick;
     int wait_timeout_ms;
     int auto_reconnect;
     esp_mqtt_event_t event;
@@ -79,6 +79,7 @@ static esp_err_t esp_mqtt_destroy_config(esp_mqtt_client_handle_t client);
 static esp_err_t esp_mqtt_connect(esp_mqtt_client_handle_t client, int timeout_ms);
 static esp_err_t esp_mqtt_abort_connection(esp_mqtt_client_handle_t client);
 static int esp_mqtt_client_ping(esp_mqtt_client_handle_t client);
+static char *create_string(const char *ptr, int len);
 
 static esp_err_t esp_mqtt_set_config(esp_mqtt_client_handle_t client, const esp_mqtt_client_config_t *config)
 {
@@ -126,7 +127,12 @@ static esp_err_t esp_mqtt_set_config(esp_mqtt_client_handle_t client, const esp_
 
     if (config->lwt_msg[0]) {
         client->connect_info.will_message = strdup(config->lwt_msg);
-        client->connect_info.will_length = strlen(config->lwt_msg);
+        if (config->lwt_msg_len > 0) {
+            client->connect_info.will_length = config->lwt_msg_len;
+        }
+        else {
+            client->connect_info.will_length = strlen(config->lwt_msg);
+        }
     }
 
     client->connect_info.will_qos = config->lwt_qos;
@@ -248,6 +254,7 @@ static esp_err_t esp_mqtt_connect(esp_mqtt_client_handle_t client, int timeout_m
 
 static esp_err_t esp_mqtt_abort_connection(esp_mqtt_client_handle_t client)
 {
+    transport_close(client->transport);
     client->wait_timeout_ms = MQTT_RECONNECT_TIMEOUT_MS;
     client->reconnect_tick = platform_tick_get_ms();
     client->state = MQTT_STATE_WAIT_TIMEOUT;
@@ -268,42 +275,48 @@ esp_mqtt_client_handle_t esp_mqtt_client_init(const esp_mqtt_client_config_t *co
     transport_set_default_port(tcp, MQTT_TCP_DEFAULT_PORT);
     transport_list_add(client->transport_list, tcp, "mqtt");
 
+    #if MQTT_ENABLE_WS
     transport_handle_t ws = transport_ws_init(tcp);
     transport_set_default_port(ws, MQTT_WS_DEFAULT_PORT);
     transport_list_add(client->transport_list, ws, "ws");
+    if (config->transport == MQTT_TRANSPORT_OVER_WS) {
+        client->config->scheme = create_string("ws", 2);
+    }
 
-    //#if define SSL
     transport_handle_t ssl = transport_ssl_init();
     transport_set_default_port(ssl, MQTT_SSL_DEFAULT_PORT);
     if (config->cert_pem) {
         transport_ssl_set_cert_data(ssl, config->cert_pem, strlen(config->cert_pem));
     }
     transport_list_add(client->transport_list, ssl, "mqtts");
-    // #endif
-
+    if (config->transport == MQTT_TRANSPORT_OVER_SSL) {
+        client->config->scheme = create_string("mqtts", 5);
+    }
+    
+    #if MQTT_ENABLE_WSS
     transport_handle_t wss = transport_ws_init(ssl);
     transport_set_default_port(wss, MQTT_WSS_DEFAULT_PORT);
-    transport_list_add(client->transport_list, wss, "wss");
+    transport_list_add(client->transport_list, wss, "wss");    
+    if (config->transport == MQTT_TRANSPORT_OVER_WSS) {
+        client->config->scheme = create_string("wss", 3);
+    }
+    #endif
+    #endif
 
     esp_mqtt_set_config(client, config);
 
     if (client->config->uri) {
         if (esp_mqtt_client_set_uri(client, client->config->uri) != ESP_OK) {
-            ESP_LOGD(TAG, "esp_mqtt_client_set_uri failed");
             return NULL;
         }
     }
-    else{
-        //ToDo: set appropriate value to client->config->scheme
-        client->config->scheme = NULL;
-        ESP_LOGD(TAG, "uri is null");
+
+    if (client->config->scheme == NULL) {
+        client->config->scheme = create_string("mqtt", 4);
     }
 
-
-    //TODO: reduce connection information storage
-
-    client->keepalive_tick = 0;
-    client->reconnect_tick = 0;
+    client->keepalive_tick = platform_tick_get_ms();
+    client->reconnect_tick = platform_tick_get_ms();
 
     int buffer_size = config->buffer_size;
     if (buffer_size <= 0) {
@@ -652,9 +665,8 @@ static void esp_mqtt_task(void *pv)
                 esp_mqtt_abort_connection(client);
                 break;
             }
-            //ToDo: when uri is not used, application crashes here even if client->config->scheme is set to null
-            //  ESP_LOGD(TAG, "Transport connected to %s://%s:%d", client->config->scheme, client->config->host, client->config->port);
-            ESP_LOGD(TAG, "Transport connected to %s:%d", client->config->host, client->config->port);
+         //   ESP_LOGD(TAG, "Transport connected to ://%s:%d", client->config->host, client->config->port);
+            ESP_LOGD(TAG, "Transport connected to %s://%s:%d", client->config->scheme, client->config->host, client->config->port);
             if (esp_mqtt_connect(client, client->config->network_timeout_ms) != ESP_OK) {
                 ESP_LOGI(TAG, "Error MQTT Connected");
                 esp_mqtt_abort_connection(client);
@@ -722,6 +734,7 @@ esp_err_t esp_mqtt_client_stop(esp_mqtt_client_handle_t client)
 {
     client->run = false;
     xEventGroupWaitBits(client->status_bits, STOPPED_BIT, false, true, portMAX_DELAY);
+    client->state = MQTT_STATE_UNKNOW;
     return ESP_OK;
 }
 
