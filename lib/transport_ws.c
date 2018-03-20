@@ -70,17 +70,17 @@ static int ws_connect(transport_handle_t t, const char *host, int port, int time
     size_t outlen = 0;
     mbedtls_base64_encode(client_key, 32,  &outlen, random_key, 16);
     int len =   snprintf(ws->buffer, DEFAULT_WS_BUFFER,
-                         "GET %s HTTP/1.1\r\n"
-                         "Connection: Upgrade\r\n"
-                         "Host: %s:%d\r\n"
-                         "Upgrade: websocket\r\n"
-                         "Sec-WebSocket-Version: 13\r\n"
-                         "Sec-WebSocket-Protocol: mqtt\r\n"
-                         "Sec-WebSocket-Key: %s\r\n"
-                         "User-Agent: ESP32 MQTT Client\r\n\r\n",
-                         ws->path,
-                         host, port,
-                         client_key);
+    "GET %s HTTP/1.1\r\n"
+    "Connection: Upgrade\r\n"
+    "Host: %s:%d\r\n"
+    "Upgrade: websocket\r\n"
+    "Sec-WebSocket-Version: 13\r\n"
+    "Sec-WebSocket-Protocol: mqtt\r\n"
+    "Sec-WebSocket-Key: %s\r\n"
+    "User-Agent: ESP32 MQTT Client\r\n\r\n",
+    ws->path,
+    host, port,
+    client_key);
     ESP_LOGD(TAG, "Write upgrate request\r\n%s", ws->buffer);
     if (transport_write(ws->parent, ws->buffer, len, timeout_ms) <= 0) {
         ESP_LOGE(TAG, "Error write Upgrade header %s", ws->buffer);

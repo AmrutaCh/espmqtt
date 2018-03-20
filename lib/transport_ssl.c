@@ -1,6 +1,4 @@
 #include <string.h>
-#include <stdlib.h>
-
 #include "mbedtls/platform.h"
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/esp_debug.h"
@@ -9,19 +7,16 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
-
-
 #include "esp_log.h"
 #include "esp_system.h"
-
 #include "platform.h"
 #include "transport.h"
 #include "transport_ssl.h"
 
 static const char *TAG = "TRANSPORT_SSL";
 /**
- *  mbedtls specific transport data
- */
+*  mbedtls specific transport data
+*/
 typedef struct {
     mbedtls_entropy_context  entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -41,7 +36,8 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
     struct timeval tv;
     transport_ssl_t *ssl = transport_get_data(t);
 
-    if (!ssl) {
+    if (!ssl) 
+    {
         return -1;
     }
     ssl->ssl_initialized = true;
@@ -51,33 +47,40 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
     mbedtls_entropy_init(&ssl->entropy);
 
     if ((ret = mbedtls_ssl_config_defaults(&ssl->conf,
-                                           MBEDTLS_SSL_IS_CLIENT,
-                                           MBEDTLS_SSL_TRANSPORT_STREAM,
-                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+                    MBEDTLS_SSL_IS_CLIENT,
+                    MBEDTLS_SSL_TRANSPORT_STREAM,
+                    MBEDTLS_SSL_PRESET_DEFAULT)) != 0) 
+    {
         ESP_LOGE(TAG, "mbedtls_ssl_config_defaults returned %d", ret);
         goto exit;
     }
 
-    if ((ret = mbedtls_ctr_drbg_seed(&ssl->ctr_drbg, mbedtls_entropy_func, &ssl->entropy, NULL, 0)) != 0) {
+    if ((ret = mbedtls_ctr_drbg_seed(&ssl->ctr_drbg, mbedtls_entropy_func, &ssl->entropy, NULL, 0)) != 0)
+    {
         ESP_LOGE(TAG, "mbedtls_ctr_drbg_seed returned %d", ret);
         goto exit;
     }
 
-    if (ssl->cert_pem_data) {
+    if (ssl->cert_pem_data)
+    {
         mbedtls_x509_crt_init(&ssl->cacert);
         ssl->verify_server = true;
-        if ((ret = mbedtls_x509_crt_parse(&ssl->cacert, ssl->cert_pem_data, ssl->cert_pem_len + 1)) < 0) {
+        if ((ret = mbedtls_x509_crt_parse(&ssl->cacert, ssl->cert_pem_data, ssl->cert_pem_len + 1)) < 0) 
+        {
             ESP_LOGE(TAG, "mbedtls_x509_crt_parse returned -0x%x\n\nDATA=%s,len=%d", -ret, (char*)ssl->cert_pem_data, ssl->cert_pem_len);
             goto exit;
         }
         mbedtls_ssl_conf_ca_chain(&ssl->conf, &ssl->cacert, NULL);
         mbedtls_ssl_conf_authmode(&ssl->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
 
-        if ((ret = mbedtls_ssl_set_hostname(&ssl->ctx, host)) != 0) {
+        if ((ret = mbedtls_ssl_set_hostname(&ssl->ctx, host)) != 0)
+        {
             ESP_LOGE(TAG, "mbedtls_ssl_set_hostname returned -0x%x", -ret);
             goto exit;
         }
-    } else {
+    } 
+    else 
+    {
         mbedtls_ssl_conf_authmode(&ssl->conf, MBEDTLS_SSL_VERIFY_NONE);
     }
 
@@ -88,7 +91,8 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
     mbedtls_esp_enable_debug_log(&ssl->conf, 4);
 #endif
 
-    if ((ret = mbedtls_ssl_setup(&ssl->ctx, &ssl->conf)) != 0) {
+    if ((ret = mbedtls_ssl_setup(&ssl->ctx, &ssl->conf)) != 0)
+    {
         ESP_LOGE(TAG, "mbedtls_ssl_setup returned -0x%x\n\n", -ret);
         goto exit;
     }
@@ -97,7 +101,8 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
 
     tv.tv_sec = 10; //default timeout is 10 seconds
 
-    if (timeout_ms) {
+    if (timeout_ms) 
+    {
         tv.tv_sec = timeout_ms;
     }
     tv.tv_usec = 0;
@@ -105,7 +110,8 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
     ESP_LOGD(TAG, "Connect to %s:%d", host, port);
     char port_str[8] = {0};
     sprintf(port_str, "%d", port);
-    if ((ret = mbedtls_net_connect(&ssl->client_fd, host, port_str, MBEDTLS_NET_PROTO_TCP)) != 0) {
+    if ((ret = mbedtls_net_connect(&ssl->client_fd, host, port_str, MBEDTLS_NET_PROTO_TCP)) != 0)
+    {
         ESP_LOGE(TAG, "mbedtls_net_connect returned -%x", -ret);
         goto exit;
     }
@@ -114,8 +120,10 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
 
     ESP_LOGD(TAG, "Performing the SSL/TLS handshake...");
 
-    while ((ret = mbedtls_ssl_handshake(&ssl->ctx)) != 0) {
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+    while ((ret = mbedtls_ssl_handshake(&ssl->ctx)) != 0)
+    {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE)
+        {
             ESP_LOGE(TAG, "mbedtls_ssl_handshake returned -0x%x", -ret);
             goto exit;
         }
@@ -126,13 +134,16 @@ static int ssl_connect(transport_handle_t t, const char *host, int port, int tim
     if ((flags = mbedtls_ssl_get_verify_result(&ssl->ctx)) != 0) {
         /* In real life, we probably want to close connection if ret != 0 */
         ESP_LOGW(TAG, "Failed to verify peer certificate!");
-        if (ssl->cert_pem_data) {
+        if (ssl->cert_pem_data) 
+        {
             return -1;
         }
         // bzero(buf, sizeof(buf));
         // mbedtls_x509_crt_verify_info(buf, sizeof(buf), "  ! ", flags);
         // ESP_LOGW(TAG, "verification info: %s", buf);
-    } else {
+    }
+    else
+    {
         ESP_LOGD(TAG, "Certificate verified.");
     }
 
@@ -174,7 +185,8 @@ static int ssl_write(transport_handle_t t, char *buffer, int len, int timeout_ms
     int poll, ret;
     transport_ssl_t *ssl = transport_get_data(t);
 
-    if ((poll = transport_poll_write(t, timeout_ms)) <= 0) {
+    if ((poll = transport_poll_write(t, timeout_ms)) <= 0)
+    {
         return poll;
     }
     ret = mbedtls_ssl_write(&ssl->ctx, (const unsigned char *) buffer, len);
@@ -186,11 +198,13 @@ static int ssl_read(transport_handle_t t, char *buffer, int len, int timeout_ms)
 {
     int poll = -1, ret;
     transport_ssl_t *ssl = transport_get_data(t);
-    if ((poll = transport_poll_read(t, timeout_ms)) <= 0) {
+    if ((poll = transport_poll_read(t, timeout_ms)) <= 0)
+    {
         return poll;
     }
     ret = mbedtls_ssl_read(&ssl->ctx, (unsigned char *)buffer, len);
-    if (ret == 0) {
+    if (ret == 0)
+    {
         return -1;
     }
     return ret;
@@ -200,13 +214,15 @@ static int ssl_close(transport_handle_t t)
 {
     int ret = -1;
     transport_ssl_t *ssl = transport_get_data(t);
-    if (ssl->ssl_initialized) {
+    if (ssl->ssl_initialized)
+    {
         ESP_LOGD(TAG, "Cleanup mbedtls");
         mbedtls_ssl_close_notify(&ssl->ctx);
         mbedtls_ssl_session_reset(&ssl->ctx);
         mbedtls_net_free(&ssl->client_fd);
         mbedtls_ssl_config_free(&ssl->conf);
-        if (ssl->verify_server) {
+        if (ssl->verify_server) 
+        {
             mbedtls_x509_crt_free(&ssl->cacert);
         }
         mbedtls_ctr_drbg_free(&ssl->ctr_drbg);
@@ -230,8 +246,10 @@ static int ssl_destroy(transport_handle_t t)
 void transport_ssl_set_cert_data(transport_handle_t t, const char *data, int len)
 {
     transport_ssl_t *ssl = transport_get_data(t);
-    if (t) {
-        if (t && ssl) {
+    if (t) 
+    {
+        if (t && ssl) 
+        {
             ssl->cert_pem_data = (void *)data;
             ssl->cert_pem_len = len;
         }

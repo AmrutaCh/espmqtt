@@ -4,14 +4,14 @@
 #include "esp_system.h"
 #include <sys/time.h>
 
+char chipID[8];
+
 char *platform_create_id_string()
 {
     uint8_t mac[6];
-    char *id_string = calloc(1, 32);
-    mem_assert(id_string);
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
-    sprintf(id_string, "ESP32_%02x%02X%02X", mac[3], mac[4], mac[5]);
-    return id_string;
+    sprintf(chipID, "ESP32_%02x%02X%02X", mac[3], mac[4], mac[5]);
+    return chipID;
 }
 
 int platform_random(int max)
