@@ -1,17 +1,18 @@
-#include <stdio.h>
 #include "platform.h"
-
 #include "mqtt_client.h"
 #include "mqtt_msg.h"
 #include "transport.h"
 #include "transport_tcp.h"
-#include "transport_ssl.h"
-#include "transport_ws.h"
-#include "platform.h"
 #include "mqtt_outbox.h"
+#include "http_parser.h"    /* using uri parser */
 
-/* using uri parser */
-#include "http_parser.h"
+
+#if MQTT_ENABLE_SSL
+#include "transport_ssl.h"
+#if (MQTT_ENABLE_WS || MQTT_ENABLE_WSS)
+#include "transport_ws.h"
+#endif
+#endif
 
 static const char *TAG = "MQTT_CLIENT";
 
@@ -72,6 +73,7 @@ struct esp_mqtt_client {
 };
 
 const static int STOPPED_BIT = BIT0;
+TaskHandle_t xHandle_mqttTask;
 
 static esp_err_t esp_mqtt_dispatch_event(esp_mqtt_client_handle_t client);
 static esp_err_t esp_mqtt_set_config(esp_mqtt_client_handle_t client, const esp_mqtt_client_config_t *config);
@@ -731,7 +733,6 @@ static void esp_mqtt_task(void *pv)
     xEventGroupClearBits(client->status_bits, STOPPED_BIT);
     while (client->run)
     {
-
         switch ((int)client->state) 
         {
         case MQTT_STATE_INIT:
@@ -750,7 +751,7 @@ static void esp_mqtt_task(void *pv)
                 esp_mqtt_abort_connection(client);
                 break;
             }
-            //   ESP_LOGD(TAG, "Transport connected to ://%s:%d", client->config->host, client->config->port);
+
             ESP_LOGD(TAG, "Transport connected to %s://%s:%d", client->config->scheme, client->config->host, client->config->port);
             if (esp_mqtt_connect(client, client->config->network_timeout_ms) != ESP_OK)
             {
@@ -802,12 +803,27 @@ static void esp_mqtt_task(void *pv)
             vTaskDelay(client->wait_timeout_ms/2/portTICK_RATE_MS);
             break;
         }
+        
+        vTaskDelay(20/portTICK_RATE_MS);
     }
     transport_close(client->transport);
     xEventGroupSetBits(client->status_bits, STOPPED_BIT);
 
     vTaskDelete(NULL);
 }
+
+
+void suspendMqtt()
+{
+    printf("\n[%s]", __func__);	
+    
+    if(xHandle_mqttTask)
+    {
+        printf("\n[%s]suspending background task", __func__);
+        vTaskSuspend(xHandle_mqttTask);
+    }
+}
+
 
 esp_err_t esp_mqtt_client_start(esp_mqtt_client_handle_t client)
 {
@@ -816,7 +832,7 @@ esp_err_t esp_mqtt_client_start(esp_mqtt_client_handle_t client)
         ESP_LOGE(TAG, "Client has started");
         return ESP_FAIL;
     }
-    if (xTaskCreatePinnedToCore(esp_mqtt_task, "mqtt_task", client->config->task_stack, client, client->config->task_prio, NULL, 1) != pdTRUE)
+    if (xTaskCreatePinnedToCore(esp_mqtt_task, "mqtt_task", client->config->task_stack, client, client->config->task_prio, &xHandle_mqttTask, 1) != pdTRUE)
     {
         ESP_LOGE(TAG, "Error create mqtt task");
         return ESP_FAIL;

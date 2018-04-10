@@ -7,9 +7,8 @@
 #ifndef _MQTT_CLIENT_H_
 #define _MQTT_CLIENT_H_
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
+#include "esp_err.h"
 
 #include "mqtt_config.h"
 
@@ -48,10 +47,6 @@ typedef struct {
 
 typedef esp_mqtt_event_t* esp_mqtt_event_handle_t;
 
-
-/**
- * \return True on connect success, false on error
- */
 typedef esp_err_t (* mqtt_event_callback_t)(esp_mqtt_event_handle_t event);
 
 
@@ -87,5 +82,6 @@ esp_err_t esp_mqtt_client_subscribe(esp_mqtt_client_handle_t client, const char 
 esp_err_t esp_mqtt_client_unsubscribe(esp_mqtt_client_handle_t client, const char *topic);
 int esp_mqtt_client_publish(esp_mqtt_client_handle_t client, const char *topic, const char *data, int len, int qos, int retain);
 esp_err_t esp_mqtt_client_destroy(esp_mqtt_client_handle_t client);
+void suspendMqtt();
 
 #endif

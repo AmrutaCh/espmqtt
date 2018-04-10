@@ -8,9 +8,14 @@ char chipID[8];
 
 char *platform_create_id_string()
 {
-    uint8_t mac[6];
+    uint8_t mac[6], len = 0;
     esp_read_mac(mac, ESP_MAC_WIFI_STA);
-    sprintf(chipID, "ESP32_%02x%02X%02X", mac[3], mac[4], mac[5]);
+    
+    for(uint8_t i=2; i<6; i++)
+    {
+        len += sprintf(chipID+len, "%02X", mac[i]);
+    }
+
     return chipID;
 }
 

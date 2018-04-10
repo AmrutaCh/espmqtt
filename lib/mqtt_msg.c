@@ -301,7 +301,7 @@ mqtt_message_t* mqtt_msg_connect(mqtt_connection_t* connection, mqtt_connect_inf
     connection->message.length += sizeof(*variable_header);
 
     variable_header->lengthMsb = 0;
-#if defined(CONFIG_MQTT_PROTOCOL_311)
+#if defined(MQTT_PROTOCOL_311)
     variable_header->lengthLsb = 4;
     memcpy(variable_header->magic, "MQTT", 4);
     variable_header->version = 4;

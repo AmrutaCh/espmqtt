@@ -188,13 +188,13 @@ esp_err_t transport_set_data(transport_handle_t t, void *data)
 }
 
 esp_err_t transport_set_func(transport_handle_t t,
-connect_func _connect,
-io_func _read,
-io_func _write,
-trans_func _close,
-poll_func _poll_read,
-poll_func _poll_write,
-trans_func _destroy)
+                             connect_func _connect,
+                             io_func _read,
+                             io_func _write,
+                             trans_func _close,
+                             poll_func _poll_read,
+                             poll_func _poll_write,
+                             trans_func _destroy)
 {
     if (t == NULL) 
     {
