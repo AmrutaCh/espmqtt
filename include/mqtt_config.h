@@ -1,8 +1,8 @@
 /*
- * This file is subject to the terms and conditions defined in
- * file 'LICENSE', which is part of this source code package.
- * Tuan PM <tuanpm at live dot com>
- */
+* This file is subject to the terms and conditions defined in
+* file 'LICENSE', which is part of this source code package.
+* Tuan PM <tuanpm at live dot com>
+*/
 #ifndef _MQTT_CONFIG_H_
 #define _MQTT_CONFIG_H_
 
@@ -18,7 +18,7 @@
 #define MQTT_MAX_LWT_MSG            32
 #define MQTT_TASK_PRIORITY          5
 #define MQTT_TASK_STACK             (4*1024)
-#define MQTT_KEEPALIVE_TICK         (120)
+#define MQTT_KEEPALIVE_TICK         (20)
 #define MQTT_BUFFER_SIZE            (1*1024)
 #define MQTT_CMD_QUEUE_SIZE         (10)
 #define MQTT_NETWORK_TIMEOUT_MS     (5000)
@@ -27,11 +27,15 @@
 #define MQTT_WS_DEFAULT_PORT        (80)
 #define MQTT_WSS_DEFAULT_PORT       (443)
 
-#define MQTT_ENABLE_SSL             0
-#define MQTT_ENABLE_WS              0
-#define MQTT_ENABLE_WSS             0
+#define MQTT_ENABLE_SSL             1
+#define MQTT_ENABLE_WS              1
+#define MQTT_ENABLE_WSS             1
 
 #define OUTBOX_EXPIRED_TIMEOUT_MS   (30*1000)
 #define OUTBOX_MAX_SIZE             (4*1024)
+
+#define MQTT_QOS                     2
+#define MQTT_RETAIN                  0
+#define MQTT_KEEP_ALIVE              10     //seconds
 
 #endif

@@ -1,12 +1,14 @@
 /*
- * This file is subject to the terms and conditions defined in
- * file 'LICENSE', which is part of this source code package.
- * Tuan PM <tuanpm at live dot com>
- */
+* This file is subject to the terms and conditions defined in
+* file 'LICENSE', which is part of this source code package.
+* Tuan PM <tuanpm at live dot com>
+*/
 
 #ifndef _MQTT_CLIENT_H_
 #define _MQTT_CLIENT_H_
 
+#include <stdint.h>
+#include <stdbool.h>
 #include <string.h>
 #include "esp_err.h"
 
